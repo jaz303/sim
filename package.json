@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "fd-vec2": "^1.0.1",
     "spinup": "^1.1.0"
   }
 }
