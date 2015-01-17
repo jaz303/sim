@@ -16,10 +16,10 @@ function randf2(min, max) {
 }
 
 function Thing() {
-	this.position = vec2.make(randf1(canvasWidth), randf1(canvasHeight));
+	this.position = vec2.make(randf1(canvasWidth), randf1(canvasHeight / 3));
 	this.velocity = vec2.make(0, 0);
 	this.acceleration = vec2.zero();
-	this.mass = 1;
+	this.mass = 1.5 + Math.random() * 4;
 }
 
 var forceScratch = vec2.make();
@@ -54,6 +54,7 @@ Thing.prototype.update = function() {
 
 	if (this.position.y > canvasHeight) {
 		this.velocity.y *= -1;
+		this.position.y = canvasHeight;
 	}
 
 	// if (this.position.y > canvasHeight) {
@@ -69,7 +70,8 @@ Thing.prototype.update = function() {
 
 Thing.prototype.draw = function() {
 	ctx.beginPath();
-	ctx.arc(this.position.x, this.position.y, 16, 0, Math.PI * 2, false);
+	ctx.globalAlpha = this.mass / 5;
+	ctx.arc(this.position.x, this.position.y, 5 * this.mass, 0, Math.PI * 2, false);
 	ctx.fill();
 }
 
@@ -94,17 +96,46 @@ window.init = function() {
 }
 
 function update() {
-	ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-
+	
 	var wind = vec2.make(0.01, 0);
-	var gravity = vec2.make(0, 0.1);
+	var gravity = vec2.zero();
+	var airFriction = vec2.zero();
+	var fluidFriction = vec2.zero();
+	var fluidDragCoefficient = 0.2;
 
 	things.forEach(function(thing) {
+		
 		thing.applyForce(wind);
+		
+		gravity.y = thing.mass * 0.5;
 		thing.applyForce(gravity);
+
+		if (thing.velocity.x != 0 || thing.velocity.y != 0) {
+			if (thing.position.y < canvasHeight / 2) {
+				vec2.mul(thing.velocity, -1, airFriction);
+				airFriction.normalize_();
+				airFriction.mul_(0.01);
+				thing.applyForce(airFriction);	
+			} else {
+				var dragMag = fluidDragCoefficient * thing.velocity.magnitudesq();
+				vec2.mul(thing.velocity, -1, fluidFriction);
+				fluidFriction.normalize_();
+				fluidFriction.mul_(dragMag);
+				thing.applyForce(fluidFriction);
+			}
+		}
+
 		thing.update();
+
 	});
+
+	ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+	ctx.fillStyle = '#505050';
+	ctx.fillRect(0, canvasHeight / 2, canvasWidth, canvasHeight / 2);
+	ctx.fillStyle = 'black';
+
 	things.forEach(function(thing) {
+
 		thing.draw();
 	});
 }
